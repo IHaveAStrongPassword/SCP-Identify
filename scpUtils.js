@@ -93,8 +93,8 @@ function checkIfForum() {
     return false;
 }
 
-// Extracts scp names from document and places them into array of pairs {number, name}
-function extractScpNames(doc, template) {
+// Extracts SCP metadata from document and places them into array of objects {id, title, rating, author}
+function extractScpMetadata(doc, template) {
     var list = [];
     var getNext = function (elem) {
         if (!elem)
@@ -115,11 +115,10 @@ function extractScpNames(doc, template) {
                 text=text+textElem.textContent;
                 textElem = getNext(textElem);
             }
-            var scpName = "";
             if (text) {
-                scpName = /[^\s-—].*/.exec(text);
-                if (scpName)
-                    list.push({number: scpNumber[0].toUpperCase(), name: scpName[0]});
+                var scpTitle = /[^\s-—].*/.exec(text);
+                if (scpTitle)
+                    list.push({id: scpNumber[0].toUpperCase(), title: scpTitle[0], rating: 0, author: "Nobody"});
             }
         }
     }
@@ -129,8 +128,8 @@ function extractScpNames(doc, template) {
 var cacheInProgress = [];
 var waitingCallbacks = [];
 
-// Fill SCP name cache
-function fillScpNameCache(website, callback) {
+// Fill SCP metadata cache
+function fillScpMetadataCache(website, callback) {
     var index = cacheInProgress.indexOf(website.name)
     if (index >= 0) {
         waitingCallbacks[index].callbacks.push(callback);
@@ -154,7 +153,7 @@ function fillScpNameCache(website, callback) {
             if (success) {
                 var parser = new DOMParser();
                 var doc = parser.parseFromString(response, "text/html");
-                var list = extractScpNames(doc, templates[sender]);
+                var list = extractScpMetadata(doc, templates[sender]);
                 for (var j=0; j<list.length; j++)
                     storeObj[website.name+"SCP"+list[j].number+"NAME"] = list[j].name;
             }
@@ -181,7 +180,7 @@ function fillScpNameCache(website, callback) {
 
 
 // Check if local cache for article names on the specified site is filled and up-to-date. Refresh if necessary
-function validateScpNameCache(website, callback) {
+function validateScpMetadataCache(website, callback) {
     var refreshName = website.name+"LastRefreshTime";
     chrome.storage.local.get(refreshName, function(item) {
         var needRefresh = (item[refreshName] == null);
@@ -193,13 +192,13 @@ function validateScpNameCache(website, callback) {
         if (!needRefresh)
             callback()
         else
-            fillScpNameCache(website, callback);
+            fillScpMetadataCache(website, callback);
     })
 }
 
 // Get SCP article name from the mainlist
-function getScpName(website, number, callback) {
-    validateScpNameCache(website, function() {
+function getScpMetadata(website, number, callback) {
+    validateScpMetadataCache(website, function() {
         var nameKey = website.name+"SCP"+number.toUpperCase()+"NAME";
         chrome.storage.local.get(nameKey, function(item) {
             callback(item[nameKey]);
