@@ -1,7 +1,7 @@
 // Set link title
 function setLinkTitle(link, scpSite, scpNumber) {
     getScpName(scpSite, scpNumber, function(scpName) {
-        if (scpName) link.title = scpName;
+        if (scpName) link.innerText = " - " + scpName + " (rating) by ";
     });
 }
 
@@ -24,7 +24,7 @@ function enhanceLinks() {
     for (var i=0; i<document.links.length; i++) {
         var link = document.links[i];
         if (link.nodeName.toUpperCase() == 'A') {
-            var isScp = false;        
+            var isScp = false;
             var scpNumber;
             var scpTemplate;
             var scpSite = identifyScpWebsite(link.href);
