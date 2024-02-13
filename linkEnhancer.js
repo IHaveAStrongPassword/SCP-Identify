@@ -1,7 +1,13 @@
 // Set link title
 function setLinkTitle(link, scpSite, scpNumber) {
+    let t = `SCP-${scpNumber}`;
+    if(link.innerText != t)
+        return;
     getScpName(scpSite, scpNumber, function(scpName) {
-        if (scpName) link.innerText = " - " + scpName + " (rating) by ";
+        let scpAuthor = "Unknown";
+        let scpRating = "NaN";
+        if (scpName)
+            link.innerText =  `${t} - ${scpNumber} (${scpRating}) by ${scpAuthor}`;
     });
 }
 
@@ -16,8 +22,6 @@ function addLinkPopupDialog(link, website, scpNumber) {
     else
         link.parentNode.appendChild(popupLink);
 }
-
-// Enhance SCP links on a page by adding tooltips 
 function enhanceLinks() {
     if (!scpperSettings.linkTooltips)
         return;
