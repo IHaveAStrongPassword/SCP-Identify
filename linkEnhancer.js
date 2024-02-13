@@ -1,13 +1,14 @@
-// Set link title
-function setLinkTitle(link, scpSite, scpNumber) {
+function modifyLink(link, scpSite, scpNumber) {
     let t = `SCP-${scpNumber}`;
-    if(link.innerText != t)
-        return;
-    getScpName(scpSite, scpNumber, function(scpName) {
-        let scpAuthor = "Unknown";
-        let scpRating = "NaN";
-        if (scpName)
-            link.innerText =  `${t} - ${scpNumber} (${scpRating}) by ${scpAuthor}`;
+    if(link.innerText !== t) {
+        console.log(`skip link "${link.innerText}"`);
+	return;
+    }
+    console.log(`processing link: ${scpNumber}`);
+    getScpMetadata(scpSite, scpNumber, function(scp) {
+        console.log(`information retrieved ${scp}`);
+        if (scp)
+            link.innerText =  `${t}: ${scp.title} (${scp.rating})`;
     });
 }
 
@@ -45,8 +46,7 @@ function enhanceLinks() {
                         }
                     }
                 if (isScp && scpNumber) {
-                    if (!link.title)
-                        setLinkTitle(link, scpSite, scpNumber[0]);
+                    modifyLink(link, scpSite, scpNumber[0]);
     //                addLinkPopupDialog(link, scpSite, scpNumber[0]);
                 }
             }

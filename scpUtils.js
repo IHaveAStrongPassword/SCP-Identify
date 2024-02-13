@@ -93,7 +93,7 @@ function checkIfForum() {
     return false;
 }
 
-// Extracts SCP metadata from document and places them into array of objects {id, title, rating, author}
+// Extracts SCP title from mainlist and places into array of objects {id, title, rating, author}
 function extractScpMetadata(doc, template) {
     var list = [];
     var getNext = function (elem) {
@@ -107,18 +107,20 @@ function extractScpMetadata(doc, template) {
     for (var i=0; i<doc.links.length; i++) {
         var link = doc.links[i];
         var href = link.attributes["href"].value;
-        if ((link.nodeName.toUpperCase() == 'A')&&(new RegExp(template.urlTemplate.replace("@", template.numberRegEx)+"$", "i").test(href))) {
+        if ((link.nodeName.toUpperCase() == 'A') && (new RegExp(template.urlTemplate.replace("@", template.numberRegEx)+"$", "i").test(href))) {
             var scpNumber = new RegExp(template.numberRegEx+"$", "i").exec(href);
             var text = "";
             var textElem = getNext(link);
-            while (textElem && (textElem.nodeName.toUpperCase()!="A") && (text.search("\n")<0)) {
+            while (textElem && (textElem.nodeName.toUpperCase() != "A") && (text.search("\n") <0)) {
                 text=text+textElem.textContent;
                 textElem = getNext(textElem);
             }
             if (text) {
+                //console.log(`checking for title: ${text}`);
                 var scpTitle = /[^\s-—].*/.exec(text);
-                if (scpTitle)
-                    list.push({id: scpNumber[0].toUpperCase(), title: scpTitle[0], rating: 0, author: "Nobody"});
+                if (scpTitle) {
+                    list.push({id: scpNumber[0].toUpperCase(), title: scpTitle[0], url: href });
+		}
             }
         }
     }
@@ -141,29 +143,33 @@ function fillScpMetadataCache(website, callback) {
     var templates = [];
     for (i=0; i<website.articleTemplates.length; i++)
         for (j=0; j<website.articleTemplates[i].listPages.length; j++)
-            if (pages.indexOf(website.articleTemplates[i].listPages[j] < 0)) {
+            if (pages.indexOf(website.articleTemplates[i].listPages[j]) < 0) {
                 pages.push(website.articleTemplates[i].listPages[j]);
                 templates.push(website.articleTemplates[i]);
             }
     var pagesLeft = pages.length;
     var errors = false;
     for (var i=0; i<pages.length; i++) {
-        makeXMLHttpRequest(i, website.primaryLink+pages[i], function(sender, response, success) {
+        makeXMLHttpRequest(i, website.primaryLink + pages[i], function(sender, response, success) {
             var storeObj = {};
             if (success) {
                 var parser = new DOMParser();
                 var doc = parser.parseFromString(response, "text/html");
                 var list = extractScpMetadata(doc, templates[sender]);
-                for (var j=0; j<list.length; j++)
-                    storeObj[website.name+"SCP"+list[j].number+"NAME"] = list[j].name;
+                for (var j=0; j<list.length; j++) {
+		    let item = list[j];
+		    item.url = website.primaryLink + item.url;
+		    item.rating = 0;
+		    item.author = "Nobody";
+                    storeObj[`${website.name}SCP${item.id}DATA`] = item;
+		}
             }
             chrome.storage.local.set(storeObj, function(){
                 if (chrome.runtime.lastError)
                     errors = true;
                 pagesLeft--;
                 if (pagesLeft == 0) {
-                    if (!errors)
-                    {
+                    if (!errors) {
                         var dateObj = {};
                         dateObj[website.name+"LastRefreshTime"] = new Date().toString();
                         chrome.storage.local.set(dateObj);
@@ -179,7 +185,7 @@ function fillScpMetadataCache(website, callback) {
 }
 
 
-// Check if local cache for article names on the specified site is filled and up-to-date. Refresh if necessary
+// Check if local cache for metadata on the specified site is filled and up-to-date. Refresh if necessary
 function validateScpMetadataCache(website, callback) {
     var refreshName = website.name+"LastRefreshTime";
     chrome.storage.local.get(refreshName, function(item) {
@@ -189,19 +195,38 @@ function validateScpMetadataCache(website, callback) {
             var lastRefresh = new Date(item[refreshName]);
             needRefresh = now - lastRefresh > SCP_NAME_CACHE_EXPIRATION;
         }
-        if (!needRefresh)
+        if (!needRefresh) {
             callback()
-        else
+        } else {
             fillScpMetadataCache(website, callback);
+	}
     })
 }
 
 // Get SCP article name from the mainlist
 function getScpMetadata(website, number, callback) {
     validateScpMetadataCache(website, function() {
-        var nameKey = website.name+"SCP"+number.toUpperCase()+"NAME";
+        var nameKey = `${website.name}SCP${number.toUpperCase()}DATA`;
+	//console.log(`retrieving data: ${nameKey}`);
         chrome.storage.local.get(nameKey, function(item) {
-            callback(item[nameKey]);
+	    let entry = item[nameKey]
+	    console.log(`data retrieved: ${JSON.stringify(item)}`);
+	    if(!entry.rating) {
+                console.log(`retrieving rating ${entry.url}`);
+		makeXMLHttpRequest(number, entry.url, function(sender, response, success) {
+		    if(success) {
+                        let parser = new DOMParser();
+                        let doc = parser.parseFromString(response, "text/html");
+			let contentElement = doc.getElementById(WIKI_PAGE_CONTENT_ELEMENT_ID);
+			let rating = doc.getElementsByClassName("rate-points")[0].childNodes[1].innerText;
+                        //console.log(`rate-points: ${rating}`);
+                        entry.rating = rating;
+			callback(entry);
+                    }
+		});
+            } else {
+                callback(entry);
+            }
     });
   });
 }

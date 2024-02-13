@@ -50,20 +50,20 @@ function processWikiPage() {
     // Find this page's object number (including suffix) and add it to linked numbers
     // Also add all subset number (i.e. if number is "123-RU-J", add "123-RU" and "123" too
     var href = /^https?:\/\/[^\/]+\/[^\/]+/i.exec(document.URL);
-    for (var i=scpWebsite.articleTemplates.length-1; (i>=0) && href; i--) {    
-        var template = scpWebsite.articleTemplates[i];        
+    for (var i = scpWebsite.articleTemplates.length - 1; (i >= 0) && href; i--) {    
+        var template = scpWebsite.articleTemplates[i];
         var scpName = new RegExp(template.urlTemplate.replace('@', template.numberRegEx)+"$", "ig").exec(href[0]);
-        if (scpName) {                    
+        if (scpName) {
             var tmp = new RegExp(template.numberRegEx, "i").exec(scpName[0]);
             if (tmp != null) {
                 if (!pageScpNumber) {
                     pageScpNumber = tmp[0];
                     // Add article name
                     if ((pageScpNumber != "") && (scpperSettings.addArticleName)) {            
-                        getScpName(scpWebsite, pageScpNumber, function(name) {
+                        getScpMetadata(scpWebsite, pageScpNumber, function(data) {
                             var titleElement = document.getElementById(WIKI_PAGE_TITLE_ELEMENT_ID);                                        
-                            if (name && titleElement && titleElement.innerText.trim().toUpperCase() == "SCP-"+pageScpNumber.toUpperCase())
-                                titleElement.textContent = titleElement.textContent.trim() + " - " + name;
+                            if (data && titleElement && titleElement.innerText.trim().toUpperCase() == "SCP-"+pageScpNumber.toUpperCase())
+                                titleElement.textContent = titleElement.textContent.trim() + " - " + data.name;
                         });
                     }                        
                 }

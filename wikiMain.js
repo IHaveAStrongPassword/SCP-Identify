@@ -1,5 +1,3 @@
-
-
 // Process loaded page
 function processWiki() {
     if (scpWebsite==null)
