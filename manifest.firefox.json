@@ -1,6 +1,6 @@
 {
   "manifest_version": 2,
-  "name": "SCPper",
+  "name": "SiteContextProvider",
   "version": "0.3.2.23",
   "description": "__MSG_MANIFEST_DESCRIPTION__",
   "icons": {
